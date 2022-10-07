@@ -53,34 +53,6 @@ async def upload_image(in_file: UploadFile = File(...)):
     return {"Result": uid}
 
 
-class image_url(BaseModel):
-    url: str
-
-
-@app.post("/upload_from_url")
-async def upload_from_url(item: image_url):
-    file_type = in_file.content_type
-    test_media_type(file_type, types=["image/png", "image/jpeg"])
-
-    file_extension = file_type.split("/")[-1]
-    uid = str(uuid4())
-    await aios.mkdir(os.path.join(out_file_directory, uid))
-    file_path = f"{out_file_directory}/{uid}/image"
-    contents = await in_file.read()
-
-    if file_type != "image/png":
-        image = Image.open(BytesIO(contents))
-        buffer = BytesIO()
-        image.save(buffer, format="PNG")
-        async with aiofiles.open(f"{file_path}.png", "wb") as out_file:
-            await out_file.write(buffer.getbuffer())
-
-    async with aiofiles.open(f"{file_path}.{file_extension}", "wb") as out_file:
-        await out_file.write(contents)
-
-    return {"Result": uid}
-
-
 @app.get(
     "/imagefile",
     response_class=FileResponse,
@@ -110,11 +82,6 @@ async def get_image_file(name: str):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-    fpath = "image.jpeg"
-    url = "http://localhost:8000/"
-
-    packet = upload_image(files={"file": ("filename", open(fpath, "rb"), "image/jpeg")})
 
 
 # feature order:
