@@ -15,3 +15,6 @@ Work path is as follows:
 2) create json that stores image permutations
     -  must make sure you have ways to preven JSON injection - see https://www.comparitech.com/net-admin/json-injection-guide/
 3) connect a real database?
+
+
+Please read the following on image processing https://cloudbytes.dev/snippets/received-return-a-file-from-in-memory-buffer-using-fastapi
