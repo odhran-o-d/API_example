@@ -1,0 +1,17 @@
+good set of image processing steps can be found here:
+
+https://auth0.com/blog/image-processing-in-python-with-pillow/
+
+
+
+
+Work path is as follows:
+
+1) create code that uploads files and ensures uploaded file is image
+    - read how to request files with https://fastapi.tiangolo.com/tutorial/request-files/
+        - need to assert file is genuine image and does not contain malicious code
+    - can save files with the following https://stackoverflow.com/questions/63580229/how-to-save-uploadfile-in-fastapi 
+    - Need to create a JSON with a unique identifier that acts as the link
+2) create json that stores image permutations
+    -  must make sure you have ways to preven JSON injection - see https://www.comparitech.com/net-admin/json-injection-guide/
+3) connect a real database?
