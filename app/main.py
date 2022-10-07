@@ -10,75 +10,59 @@ from uuid import uuid4
 from PIL import Image
 from pydantic import BaseModel, Field
 import uvicorn
+import shutil
 
 app = FastAPI()
 out_file_directory = "data"  # TODO: replace with real database
 
 
-async def exceptions_404(c):
-    if "directory" in c:
-        if not await aios.path.isdir(c["directory"]):
-            raise HTTPException(status_code=404, detail="Directory not found")
-
-
-# uploading files will be a POST request as it will not be idempotent
 @app.post("/uploadfile/")
 async def post_endpoint(in_file: UploadFile = File(...)):
-    uid = str(uuid4())
-    await aios.mkdir(os.path.join(out_file_directory, uid))
-
     if in_file.content_type not in ["image/png", "image/jpeg"]:
         raise HTTPException(status_code=415, detail="Unsupported media type")
 
+    uid = str(uuid4())
+    await aios.mkdir(os.path.join(out_file_directory, uid))
     file_extension = in_file.content_type.split("/")[-1]
+    file_path = f"{out_file_directory}/{uid}/image"
+    contents = await in_file.read()
 
-    out_file = f"{out_file_directory}/{uid}/original_image"
-    async with aiofiles.open(out_file, "wb") as out_file:
-        while content := await in_file.read(
-            1024
-        ):  # TODO: security check data + check is image
-            await out_file.write(content)  # async write chunk
+    if in_file.content_type != "image/png":  # convert to png
+        image = Image.open(BytesIO(contents))
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        async with aiofiles.open(f"{file_path}.png", "wb") as out_file:
+            await out_file.write(buffer.getbuffer())
+
+    async with aiofiles.open(f"{file_path}.{file_extension}", "wb") as out_file:
+        await out_file.write(contents)  # async write chunk
+
     return {"Result": uid}
 
 
 @app.get(
-    "/image",
-    response_class=Response,
+    "/imagefile",
+    response_class=FileResponse,
 )
-async def get_image(image_name: str, format: str):
-    directory = f"{out_file_directory}/{image_name}"
-
-    image = directory + "/original_image"
-
-    if not await aios.path.isdir(directory):
-        raise HTTPException(status_code=404, detail="Directory not found")
-
-    async with aiofiles.open(image, mode="rb") as f:
-        contents: bytes = await f.read()
+async def get_image_file(image_name: str, format: str):
+    if format not in ["png", "jpeg"]:
+        raise HTTPException(status_code=415, detail="Unsupported media type")
 
     if format == "png":
-        return Response(content=contents, media_type="image/png")
+        return FileResponse(f"{out_file_directory}/{image_name}/image.png")
 
     if format == "jpeg":
-        pil_image = Image.open(BytesIO(contents))
-        pil_image = pil_image.convert("RGB")
-        with BytesIO() as f:
-            pil_image.save(f, format="JPEG")
-            f.seek(0)
-            ima_jpg = Image.open(f)
+        if not await aios.path.isfile(f"{out_file_directory}/{image_name}/image.jpeg"):
+            image = Image.open(f"{out_file_directory}/{image_name}/image.png")
+            image = image.convert("RGB")
+            buffer = BytesIO()
+            image.save(buffer, format="JPEG")
+            async with aiofiles.open(
+                f"{out_file_directory}/{image_name}/image.jpeg", "wb"
+            ) as out_file:
+                await out_file.write(buffer.getbuffer())
 
-        return Response(content=ima_jpg, media_type="image/jpeg")
-
-
-@app.post("/")
-def image_filter(img: UploadFile = File(...)):
-    original_image = Image.open(img.file)
-
-    filtered_image = BytesIO()
-    original_image.save(filtered_image, "JPEG")
-    filtered_image.seek(0)
-
-    return StreamingResponse(filtered_image, media_type="image/jpeg")
+        return FileResponse(f"{out_file_directory}/{image_name}/image.jpeg")
 
 
 if __name__ == "__main__":
