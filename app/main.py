@@ -7,7 +7,6 @@ import aiofiles.os as aios
 from uuid import uuid4
 from PIL import Image
 import uvicorn
-from pydantic import BaseModel
 
 
 app = FastAPI()

@@ -1,0 +1,8 @@
+locust
+fastapi
+pytest
+aiofiles
+uuid
+pillow
+uvicorn
+python-multipart
