@@ -1,4 +1,4 @@
-# This API project was built in fastAPI.
+# This is an example API project built in fastAPI
 
 **setup**
 
